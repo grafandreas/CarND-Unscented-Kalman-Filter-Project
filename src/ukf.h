@@ -11,6 +11,8 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 class UKF {
+
+
 public:
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
@@ -68,6 +70,22 @@ public:
   double lambda_;
 
 
+  // Added by me
+
+  int n_sig_points_;
+
+  // previous timestamp
+  long long previous_timestamp_;
+
+  // We had these in the previous exercise, so we might need them heree
+  Eigen::MatrixXd R_laser_;
+  Eigen::MatrixXd R_radar_;
+
+  Eigen::MatrixXd  NIS_laser_;
+  Eigen::MatrixXd  NIS_radar_;
+
+
+
   /**
    * Constructor
    */
@@ -102,6 +120,17 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+  void NormAng(double *ang);
+
+  void UpdateUKF(MeasurementPackage meas_package, MatrixXd Zsig, int n_z);
+
+  void AugmentedSigmaPoints(MatrixXd &Xsig_out);
+
+  void PredictSigmaPoints(const MatrixXd &Xsig_aug, const double delta_t, MatrixXd &Xsig_out);
+
+  void PredictMeanCovariance(const MatrixXd &Xsig_pred, VectorXd &x_out, MatrixXd &P_out);
+
 };
 
 #endif /* UKF_H */
