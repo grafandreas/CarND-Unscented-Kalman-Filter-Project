@@ -14,12 +14,16 @@ using std::vector;
  * This is scaffolding, do not modify
  */
 UKF::UKF() {
+
+  previous_timestamp_ = 0.0;
+  time_us_ = 0;
+
   is_initialized_ = false;
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
-  use_radar_ = false;
+  use_radar_ = true;
 
   // initial state vector
   x_ = VectorXd(5);
@@ -56,10 +60,14 @@ UKF::UKF() {
   lambda_ = 3 - n_aug_;  // Calculated as in project lession
 
   Xsig_pred_ = MatrixXd(n_x_, n_sig_points_);
+  Xsig_pred_.setZero();
+
   // Sigma point spreading parameter
 
   // Weights of sigma points
   weights_ = VectorXd(n_sig_points_);
+  weights_.setZero();
+
   // Measurement noise covariance matrices initialization
   R_radar_ = MatrixXd(3, 3);
   R_radar_ << std_radr_ * std_radr_, 0, 0, 0, std_radphi_ * std_radphi_, 0, 0, 0, std_radrd_
@@ -72,66 +80,76 @@ UKF::UKF() {
 UKF::~UKF() {
 }
 
+void UKF::Init(MeasurementPackage measurement_pack) {
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    Tools t;
+
+    // polar2Cart calculates All, but we only use X/Y
+    //
+    VectorXd c = t.polar2Cart(measurement_pack.raw_measurements_);
+    x_ = c;
+  } else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+    x_ << measurement_pack.raw_measurements_[0], measurement_pack
+        .raw_measurements_[1], 0.0, 0.0,  // Should 2 and 3 should be 0 anyway, but use constant so
+    0.0;
+  }
+
+  // The first time_stamp is being set
+  //
+  previous_timestamp_ = measurement_pack.timestamp_;
+
+  P_ << 1, 0, 0, 0, 0,
+        0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0,
+        0, 0, 0, 0, 1;
+
+  weights_(0) = lambda_ / (lambda_ + n_aug_);
+  for (int i = 1; i < weights_.size() ; i++)
+    weights_(i) = 0.5 / (n_aug_ + lambda_);
+
+
+  // done initializing, no need to predict or update
+  is_initialized_ = true;
+  cout << "Init" <<endl;
+  return;
+}
+
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
  cout << " -> PM" <<endl;
-  // This is all inspired by the previous exercise
+
   if (!is_initialized_) {
-
-    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-      Tools t;
-
-      // polar2Cart calculates All, but we only use X/Y
-      //
-      VectorXd c = t.polar2Cart(measurement_pack.raw_measurements_);
-      x_ = c;
-    } else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
-      x_ << measurement_pack.raw_measurements_[0], measurement_pack
-          .raw_measurements_[1], 0.0, 0.0,  // Should 2 and 3 should be 0 anyway, but use constant so
-      0.0;
-    }
-
-    // The first time_stamp is being set
-    //
-    previous_timestamp_ = measurement_pack.timestamp_;
-
-    P_ << 1, 0, 0, 0, 0,
-          0, 1, 0, 0, 0,
-          0, 0, 1, 0, 0,
-          0, 0, 0, 1, 0,
-          0, 0, 0, 0, 1;
-
-    weights_(0) = lambda_ / (lambda_ + n_aug_);
-    for (int i = 1; i < weights_.size() ; i++)
-      weights_(i) = 0.5 / (n_aug_ + lambda_);
-//    weights_.segment(1,weights_.size()-1) =
-
-    // done initializing, no need to predict or update
-    is_initialized_ = true;
-    cout << " <- PM" <<endl;
-    return;
+    Init(measurement_pack);
   }
 
   auto delta_t = ((measurement_pack.timestamp_ - previous_timestamp_)
       / 1000000.0);
-
-  // Make sure that we calculate on the delta the next time.
   previous_timestamp_ = measurement_pack.timestamp_;
 
   Prediction(delta_t);
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
-
     UpdateRadar(measurement_pack);
   } else if(measurement_pack.sensor_type_ == MeasurementPackage::LASER &&  use_laser_) {
-
     UpdateLidar(measurement_pack);
   }
   assert(!x_.hasNaN());
 
+}
+
+void UKF::UpdateCovarianceMatrix() {
+  P_.setZero();
+  for (int i = 0; i < n_sig_points_; i++) {  //iterate over sigma points
+    // State difference
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    // Angle normalization
+    NormAng(&(x_diff(3)));
+    P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
+  }
 }
 
 /**
@@ -221,14 +239,8 @@ void UKF::Prediction(double delta_t) {
   x_ = Xsig_pred_ * weights_;  // vectorised sum
   assert(!x_.hasNaN());
   // Predicted state covariance matrix
-  P_.fill(0.0);
-  for (int i = 0; i < n_sig_points_; i++) {  //iterate over sigma points
-    // State difference
-    VectorXd x_diff = Xsig_pred_.col(i) - x_;
-    // Angle normalization
-    NormAng(&(x_diff(3)));
-    P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
-  }
+  UpdateCovarianceMatrix();
+
 
   cout << "<-PR" <<endl;
 }

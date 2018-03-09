@@ -127,6 +127,10 @@ public:
 
   void AugmentedSigmaPoints(MatrixXd &Xsig_out);
 
+  void Init(MeasurementPackage measurement_pack);
+
+  void UpdateCovarianceMatrix();
+
 };
 
 #endif /* UKF_H */
