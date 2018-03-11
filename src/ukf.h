@@ -127,9 +127,11 @@ public:
 
   void AugmentedSigmaPoints(MatrixXd &Xsig_out);
 
-  void PredictSigmaPoints(const MatrixXd &Xsig_aug, const double delta_t, MatrixXd &Xsig_out);
+  void Init(MeasurementPackage measurement_pack);
 
-  void PredictMeanCovariance(const MatrixXd &Xsig_pred, VectorXd &x_out, MatrixXd &P_out);
+  void UpdateCovarianceMatrix();
+
+  void PredictSigmaPoints(double delta_t);
 
 };
 
