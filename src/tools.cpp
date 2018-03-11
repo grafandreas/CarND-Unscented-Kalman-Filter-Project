@@ -13,7 +13,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
                               const vector<VectorXd> &ground_truth) {
  // Code taken from pervious project
 
-  cout << "-> RMSE " << estimations.size() << endl;
+//  cout << "-> RMSE " << estimations.size() << endl;
 
 
 
@@ -22,11 +22,11 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   VectorXd rmse = VectorXd(4);
   rmse << 0.0,0.0,0.0,0.0;
 
-  cout << "I " << estimations.size() << endl;
-  cout << estimations.back() << endl;
-  cout << "----" << endl;
-  cout  << ground_truth.back() << endl;
-  cout << "++++" << endl;
+//  cout << "I " << estimations.size() << endl;
+//  cout << estimations.back() << endl;
+//  cout << "----" << endl;
+//  cout  << ground_truth.back() << endl;
+//  cout << "++++" << endl;
 
   for(int i = 0; i < estimations.size(); i++) {
 
@@ -42,7 +42,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
 //  assert(rmse(0) < 0.5);
 //  assert(rmse(1) < 0.5);
-  cout << "<- RMSE" << rmse << endl;
+//  cout << "<- RMSE" << rmse << endl;
   return rmse;
 
 }

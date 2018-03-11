@@ -131,6 +131,8 @@ public:
 
   void UpdateCovarianceMatrix();
 
+  void PredictSigmaPoints(double delta_t);
+
 };
 
 #endif /* UKF_H */
